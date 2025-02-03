@@ -1,58 +1,52 @@
-class ZOCT_FATOR_VENCIMENTO_BOLETO definition
-  public
-  final
-  create public .
+CLASS zoct_fator_vencimento_boleto DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
 
-public section.
+  PUBLIC SECTION.
 
-  types:
-    fator(4) TYPE n .
+    TYPES: ty_fator(4) TYPE n.
 
-  class-data DATA_BASE_1000 type SY-DATUM read-only value '20000703' ##NO_TEXT.
-  class-data DATA_BASE_NOVA type SY-DATUM read-only value '20250222' ##NO_TEXT.
-  class-data DATA_BASE_FEB type SY-DATUM read-only value '19971007' ##NO_TEXT.
+    CLASS-DATA gv_data_base_1000 TYPE sy-datum READ-ONLY VALUE '20000703' ##NO_TEXT.
+    CLASS-DATA gv_data_base_nova TYPE sy-datum READ-ONLY VALUE '20250222' ##NO_TEXT.
+    CLASS-DATA gv_data_base_feb TYPE sy-datum READ-ONLY VALUE '19971007' ##NO_TEXT.
 
-  class-methods FATOR_TO_DATA
-    importing
-      value(IV_FATOR) type STRING
-    returning
-      value(RV_RESULT) type STRING .
-  class-methods DATA_TO_FATOR
-    importing
-      value(IV_DATA) type DATUM
-    exporting
-      value(EX_FATOR) type FATOR .
-protected section.
-private section.
+    CLASS-METHODS fator_to_data
+    IMPORTING iv_fator       TYPE string
+    RETURNING VALUE(rv_date) TYPE string .
 
-  class-methods CALC_FATOR
-    importing
-      value(IV_FATOR_DE_VENCIMENTO) type VTBBEWE-DBERBIS
-      value(IV_DATA_FEBRABAN) type XFLAG optional
-    returning
-      value(RV_RESULT) type STRING .
+    CLASS-METHODS data_to_fator
+    IMPORTING iv_data         TYPE sy-datum
+    RETURNING VALUE(rv_fator) TYPE ty_fator.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    CLASS-METHODS calc_fator
+    IMPORTING iv_fator_de_vencimento TYPE sy-datum
+      iv_data_febraban               TYPE abap_bool OPTIONAL
+    RETURNING VALUE(rv_result)       TYPE string .
 ENDCLASS.
 
 
 
-CLASS ZOCT_FATOR_VENCIMENTO_BOLETO IMPLEMENTATION.
+CLASS zoct_fator_vencimento_boleto IMPLEMENTATION.
 
 
-  METHOD CALC_FATOR.
+  METHOD calc_fator.
     DATA: lv_date_diff TYPE i,
-          max_num(4) type n.
+          lv_max_num(4) TYPE n.
 
     IF iv_data_febraban = 'X'.
       CALL FUNCTION 'DAYS_BETWEEN_TWO_DATES'
         EXPORTING
           i_datum_bis = iv_fator_de_vencimento
-          i_datum_von = zfi_fator_vencimento=>data_base_feb
+          i_datum_von = gv_data_base_feb
         IMPORTING
           e_tage      = lv_date_diff.
-      max_num = 9999.
+      lv_max_num = 9999.
     ELSE.
-      lv_date_diff = iv_fator_de_vencimento - zfi_fator_vencimento=>data_base_1000 .
-      max_num = 9000.
+      lv_date_diff = iv_fator_de_vencimento - gv_data_base_1000.
+      lv_max_num = 9000.
     ENDIF.
 
     rv_result = lv_date_diff.
@@ -62,7 +56,7 @@ CLASS ZOCT_FATOR_VENCIMENTO_BOLETO IMPLEMENTATION.
       rv_result = lv_date_diff.
     ENDIF.
 
-    WHILE lv_date_diff > max_num.
+    WHILE lv_date_diff > lv_max_num.
       lv_date_diff  = lv_date_diff  - 9000.
     ENDWHILE.
 
@@ -71,64 +65,63 @@ CLASS ZOCT_FATOR_VENCIMENTO_BOLETO IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD DATA_TO_FATOR.
+  METHOD data_to_fator.
   ENDMETHOD.
 
 
-  METHOD FATOR_TO_DATA.
+  METHOD fator_to_data.
     DATA: lv_data_calc_velho  TYPE sy-datum,
           lv_data_calc_novo   TYPE sy-datum,
-          str_fator_hoje      TYPE string,
-          str_fator_vencido   TYPE string,
-          str_fator_avencer   TYPE string,
-          str_fator_transicao TYPE string,
-          dta_vencida         TYPE sy-datum,
-          dta_avencer         TYPE sy-datum,
-          data_base_nova      TYPE sy-datum,
-          data_base_antiga    TYPE sy-datum,
-          dta_hoje            TYPE sy-datum.
+          lv_str_fator_hoje      TYPE string,
+          lv_str_fator_vencido   TYPE string,
+          lv_str_fator_avencer   TYPE string,
+          lv_str_fator_transicao TYPE string,
+          lv_dta_vencida         TYPE sy-datum,
+          lv_dta_avencer         TYPE sy-datum,
+          lv_dta_hoje            TYPE sy-datum.
 
-    dta_hoje = sy-datum.
+    lv_dta_hoje = sy-datum.
 
     IF iv_fator > 0.
-      dta_vencida = dta_hoje - 3000.
-      dta_avencer = dta_hoje + 5500.
+      lv_dta_vencida = lv_dta_hoje - 3000.
+      lv_dta_avencer = lv_dta_hoje + 5500.
 
-      str_fator_hoje = calc_fator( iv_fator_de_vencimento = dta_hoje iv_data_febraban = 'X' ).
-      str_fator_vencido = str_fator_hoje - 3000.
-      str_fator_avencer = str_fator_hoje + 5500.
+      lv_str_fator_hoje = calc_fator( iv_fator_de_vencimento = lv_dta_hoje
+                                      iv_data_febraban = 'X' ).
+      lv_str_fator_vencido = lv_str_fator_hoje - 3000.
+      lv_str_fator_avencer = lv_str_fator_hoje + 5500.
 
-      IF str_fator_vencido < 0.
-        str_fator_vencido = str_fator_vencido + 9000.
+      IF lv_str_fator_vencido < 0.
+        lv_str_fator_vencido = lv_str_fator_vencido + 9000.
       ENDIF.
 
-      IF str_fator_avencer > 9999.
-        str_fator_avencer = str_fator_avencer - 9000.
+      IF lv_str_fator_avencer > 9999.
+        lv_str_fator_avencer = lv_str_fator_avencer - 9000.
       ENDIF.
 
-      IF str_fator_vencido > str_fator_avencer.
-        str_fator_transicao = str_fator_vencido.
-        str_fator_vencido = str_fator_avencer.
-        str_fator_avencer = str_fator_transicao.
+      IF lv_str_fator_vencido > lv_str_fator_avencer.
+        lv_str_fator_transicao = lv_str_fator_vencido.
+        lv_str_fator_vencido = lv_str_fator_avencer.
+        lv_str_fator_avencer = lv_str_fator_transicao.
       ENDIF.
 
-      lv_data_calc_velho = zfi_fator_vencimento=>data_base_1000 + ( iv_fator  - 1000 ).
-      lv_data_calc_novo = zfi_fator_vencimento=>data_base_nova + (  iv_fator  - 1000 ).
+      lv_data_calc_velho = gv_data_base_1000 + ( iv_fator  - 1000 ).
+      lv_data_calc_novo = gv_data_base_nova + (  iv_fator  - 1000 ).
 
-      IF dta_vencida <= lv_data_calc_velho AND dta_avencer >= lv_data_calc_velho.
-        rv_result = lv_data_calc_velho.
+      IF lv_dta_vencida <= lv_data_calc_velho AND lv_dta_avencer >= lv_data_calc_velho.
+        rv_date = lv_data_calc_velho.
       ENDIF.
 
-      IF dta_vencida <= lv_data_calc_novo AND dta_avencer >= lv_data_calc_novo.
-        rv_result = lv_data_calc_novo.
+      IF lv_dta_vencida <= lv_data_calc_novo AND lv_dta_avencer >= lv_data_calc_novo.
+        rv_date = lv_data_calc_novo.
       ENDIF.
 
-      IF rv_result IS NOT INITIAL.
-        rv_result = |{ rv_result(8) }|.
+      IF rv_date IS NOT INITIAL.
+        rv_date = |{ rv_date(8) }|.
       ENDIF.
 
-      IF  iv_fator  >  str_fator_vencido  AND iv_fator  <  str_fator_avencer.
-        rv_result = ''.
+      IF iv_fator  > lv_str_fator_vencido  AND iv_fator  < lv_str_fator_avencer.
+        rv_date = ''.
       ENDIF.
 
     ENDIF.
